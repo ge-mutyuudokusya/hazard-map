@@ -145,24 +145,39 @@ const HOKKAIDO = {
 
 // --------------------
 // 避難所データ取得（北海道限定）
-// --------------------
-fetch('https://disaportal.gsi.go.jp/data/vector/evacuation/evacuation.geojson')
+// --------------------fetch('https://disaportal.gsi.go.jp/data/vector/evacuation/evacuation.geojson')
   .then(res => res.json())
   .then(data => {
-    const hokkaidoOnly = {
+
+    const features = data.features.filter(f => {
+      if (!f.geometry) return false;
+      if (f.geometry.type !== 'Point') return false;
+
+      const coords = f.geometry.coordinates;
+      if (!Array.isArray(coords) || coords.length < 2) return false;
+
+      const lng = coords[0];
+      const lat = coords[1];
+
+      return (
+        lat >= HOKKAIDO.minLat &&
+        lat <= HOKKAIDO.maxLat &&
+        lng >= HOKKAIDO.minLng &&
+        lng <= HOKKAIDO.maxLng
+      );
+    });
+
+    console.log('北海道の避難所数:', features.length);
+
+    evacuationLayer.addData({
       type: 'FeatureCollection',
-      features: data.features.filter(f => {
-        const [lng, lat] = f.geometry.coordinates;
-        return (
-          lat >= HOKKAIDO.minLat &&
-          lat <= HOKKAIDO.maxLat &&
-          lng >= HOKKAIDO.minLng &&
-          lng <= HOKKAIDO.maxLng
-        );
-      })
-    };
-    evacuationLayer.addData(hokkaidoOnly);
+      features
+    });
+  })
+  .catch(err => {
+    console.error('避難所データ取得失敗', err);
   });
+
 
 // --------------------
 // チェックボックス
