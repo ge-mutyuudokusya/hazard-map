@@ -1,272 +1,185 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>北海道 防災ハザードマップ</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>北海道全域ハザードマップ・避難ナビ</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; overflow: hidden; }
+        #map { height: 100vh; width: 100%; }
 
-  <!-- Routing -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
-  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+        /* UIパネル */
+        .controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(255,255,255,0.9);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-width: 200px;
+        }
 
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      background: #111;
-      color: #fff;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
+        .btn-action {
+            display: block;
+            width: 100%;
+            padding: 12px 5px;
+            margin-bottom: 5px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+        }
 
-    header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 50px;
-      line-height: 50px;
-      background: #1c1c1c;
-      text-align: center;
-      font-weight: bold;
-      z-index: 2000;
-    }
+        .btn-gps { background: #3498db; }
 
-    #map {
-      position: absolute;
-      top: 50px;
-      bottom: 0;
-      left: 0;
-      right: 0;
-    }
-
-    .hazard-bar {
-      position: fixed;
-      bottom: 70px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 8px;
-      z-index: 1500;
-    }
-
-    .hazard-btn {
-      padding: 10px 14px;
-      border-radius: 10px;
-      border: none;
-      font-size: 15px;
-      color: #fff;
-      opacity: 0.6;
-    }
-
-    .hazard-btn.active {
-      opacity: 1;
-      box-shadow: 0 0 10px rgba(255,255,255,0.4);
-    }
-
-    .tsunami { background: #005eff; }
-    .flood { background: #00bcd4; }
-    .landslide { background: #ff9800; }
-
-    .action-bar {
-      position: fixed;
-      bottom: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 10px;
-      z-index: 1500;
-    }
-
-    .action-bar button {
-      padding: 10px 16px;
-      font-size: 15px;
-      border-radius: 10px;
-      border: none;
-      background: #2ecc71;
-      color: #000;
-      font-weight: bold;
-    }
-  </style>
+        /* 現在地ピンの点滅アニメーション */
+        .current-location-marker {
+            background-color: #3498db;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.4);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 1; }
+            70% { transform: scale(1.3); opacity: 0.3; }
+            100% { transform: scale(0.9); opacity: 1; }
+        }
+    </style>
 </head>
 <body>
 
-<header id="mode">通常表示</header>
-<div id="map"></div>
+    <div class="controls">
+        <button class="btn-action btn-gps" onclick="findNearestShelter()">📍 最寄りの避難所を探す</button>
+        <div style="font-size: 11px; color: #666; margin-top: 5px;">
+            ※位置情報を許可してください<br>
+            ※赤いエリア：ハザード情報
+        </div>
+    </div>
 
-<div class="hazard-bar">
-  <button class="hazard-btn tsunami" data-type="tsunami">🌊 津波</button>
-  <button class="hazard-btn flood" data-type="flood">💧 洪水</button>
-  <button class="hazard-btn landslide" data-type="landslide">⛰ 土砂</button>
-</div>
+    <div id="map"></div>
 
-<div class="action-bar">
-  <button id="locate">📍 現在地</button>
-  <button id="route">➡ 最寄り避難所</button>
-</div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-<script>
-  /* =====================
-     MAP INITIALIZE
-  ====================== */
-  const map = L.map('map', {
-    minZoom: 5,
-    maxBounds: [[41,138],[46.5,148]]
-  }).setView([43.2, 142.8], 6);
+    <script>
+        // --- 1. 初期設定 ---
+        const map = L.map('map', { zoomControl: false }).setView([43.064, 141.346], 7); // 北海道全域
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(map);
+        // ベース地図 (OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
 
-  /* =====================
-     HAZARD TILES
-  ====================== */
-  const hazardTiles = {
-    tsunami: L.tileLayer(
-      'https://disaportaldata.gsi.go.jp/raster/tsunami/{z}/{x}/{y}.png',
-      { opacity: 0.6 }
-    ),
-    flood: L.tileLayer(
-      'https://disaportaldata.gsi.go.jp/raster/flood_l2/{z}/{x}/{y}.png',
-      { opacity: 0.6 }
-    ),
-    landslide: L.tileLayer(
-      'https://disaportaldata.gsi.go.jp/raster/landslide/{z}/{x}/{y}.png',
-      { opacity: 0.6 }
-    )
-  };
+        // --- 2. ハザードマップレイヤー (国土地理院) ---
+        const hazardLayers = {
+            "🌊 津波": L.tileLayer('https://disaportaldata.gsi.go.jp/raster/04_tsunami_newlegend_data/{z}/{x}/{y}.png', { opacity: 0.6 }),
+            "💧 洪水": L.tileLayer('https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png', { opacity: 0.6 }),
+            "⛰️ 土砂": L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_dosha_kiken_nadare_data/{z}/{x}/{y}.png', { opacity: 0.6 })
+        };
+        // 初期状態で全部ONにする場合は .addTo(map) をつける
+        hazardLayers["⛰️ 土砂"].addTo(map); 
+        L.control.layers(null, hazardLayers, { collapsed: false, position: 'topright' }).addTo(map);
 
-  let currentHazard = null;
+        // --- 3. 避難所データの取得と表示 ---
+        // 本来は北海道の全データをAPI等から取得しますが、ここでは動作サンプルとして
+        // 北海道の主要な避難所地点を配列化。全域対応時は外部JSON化を推奨。
+        const shelters = [
+            { name: "札幌市中央体育館", lat: 43.067, lng: 141.362 },
+            { name: "函館市役所", lat: 41.768, lng: 140.729 },
+            { name: "旭川市大雪アリーナ", lat: 43.763, lng: 142.353 },
+            { name: "釧路市生涯学習センター", lat: 42.978, lng: 144.381 },
+            { name: "帯広市総合体育館", lat: 42.923, lng: 143.204 },
+            { name: "北見市役所", lat: 43.803, lng: 143.894 },
+            { name: "稚内市役所", lat: 45.415, lng: 141.673 }
+            // ※ここに数千件のデータを追加可能
+        ];
 
-  /* =====================
-     SHELTERS (OFFICIAL)
-  ====================== */
-  const shelters = [];
+        const markers = L.markerClusterGroup();
+        const shelterIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/819/819865.png',
+            iconSize: [30, 30], iconAnchor: [15, 30]
+        });
 
-  fetch('https://motohasystem.github.io/jp-shelter-api/api/v0/emergency/01.json')
-    .then(res => res.json())
-    .then(data => {
-      data.features.forEach(f => {
-        if (!f.geometry || f.geometry.type !== 'Point') return;
+        shelters.forEach(s => {
+            const m = L.marker([s.lat, s.lng], { icon: shelterIcon })
+                       .bindPopup(`<b>${s.name}</b><br><button onclick="calcRoute(${s.lat},${s.lng})">ここへ行く</button>`);
+            markers.addLayer(m);
+        });
+        map.addLayer(markers);
 
-        const p = f.properties || {};
-        const [lng, lat] = f.geometry.coordinates;
+        // --- 4. GPSと最寄り検索機能 ---
+        let userMarker, routingControl;
 
-        const marker = L.marker([lat, lng]);
+        function findNearestShelter() {
+            if (!navigator.geolocation) return alert("GPS非対応です");
 
-        marker.hazard = {
-          tsunami: p.tsunami === true || p.tsunami === '1',
-          flood: p.flood === true || p.flood === '1',
-          landslide: p.landslide === true || p.landslide === '1'
+            navigator.geolocation.getCurrentPosition(pos => {
+                const uLat = pos.coords.latitude;
+                const uLng = pos.coords.longitude;
+                const userLoc = L.latLng(uLat, uLng);
+
+                // 現在地マーカー表示
+                if (userMarker) map.removeLayer(userMarker);
+                userMarker = L.circleMarker(userLoc, { className: 'current-location-marker', radius: 10 }).addTo(map);
+                
+                // 北海道内にいるかチェック（簡易版）
+                if (uLat < 41 || uLat > 46 || uLng < 139 || uLng > 149) {
+                    alert("北海道外にいるようです。北海道内の避難所を検索します。");
+                }
+
+                // 最も近い避難所を探す
+                let nearest = null;
+                let minDist = Infinity;
+
+                shelters.forEach(s => {
+                    const dist = userLoc.distanceTo(L.latLng(s.lat, s.lng));
+                    if (dist < minDist) {
+                        minDist = dist;
+                        nearest = s;
+                    }
+                });
+
+                if (nearest) {
+                    map.flyTo([nearest.lat, nearest.lng], 15);
+                    setTimeout(() => {
+                        calcRoute(nearest.lat, nearest.lng, userLoc);
+                        alert(`最寄りの「${nearest.name}」までのルートを表示します。`);
+                    }, 1000);
+                }
+            }, () => alert("位置情報を取得できませんでした"));
+        }
+
+        // --- 5. ルート描画 ---
+        window.calcRoute = function(destLat, destLng, startLoc = null) {
+            if (!startLoc && !userMarker) return alert("先に現在地を取得してください");
+            const start = startLoc || userMarker.getLatLng();
+
+            if (routingControl) map.removeControl(routingControl);
+
+            routingControl = L.Routing.control({
+                waypoints: [start, L.latLng(destLat, destLng)],
+                lineOptions: { styles: [{ color: '#2ecc71', weight: 6 }] },
+                createMarker: () => null, // 余計なマーカーを消す
+                addWaypoints: false,
+                draggableWaypoints: false,
+                show: false // 詳細ナビパネルはスマホだと邪魔なので隠す
+            }).addTo(map);
         };
 
-        marker.bindPopup(`
-          <strong>${p.name || '名称不明'}</strong><br>
-          住所: ${p.address || '不明'}<br>
-          標高: ${p.elevation ?? '不明'} m<br>
-          収容人数: ${p.capacity ?? '不明'} 人<br>
-          🌊 津波: ${marker.hazard.tsunami ? '⭕' : '❌'}<br>
-          💧 洪水: ${marker.hazard.flood ? '⭕' : '❌'}<br>
-          ⛰ 土砂: ${marker.hazard.landslide ? '⭕' : '❌'}
-        `);
-
-        shelters.push(marker);
-        marker.addTo(map);
-      });
-    })
-    .catch(err => {
-      console.error(err);
-      alert('避難所データの読み込みに失敗しました');
-    });
-
-  /* =====================
-     HAZARD FILTER
-  ====================== */
-  document.querySelectorAll('.hazard-btn').forEach(btn => {
-    btn.onclick = () => {
-      const type = btn.dataset.type;
-
-      document.querySelectorAll('.hazard-btn')
-        .forEach(b => b.classList.remove('active'));
-      Object.values(hazardTiles)
-        .forEach(t => map.removeLayer(t));
-
-      if (currentHazard === type) {
-        currentHazard = null;
-        document.getElementById('mode').innerText = '通常表示';
-        shelters.forEach(m => m.setOpacity(1));
-        return;
-      }
-
-      btn.classList.add('active');
-      hazardTiles[type].addTo(map);
-      currentHazard = type;
-      document.getElementById('mode').innerText =
-        `⚠ ${btn.innerText} 災害モード`;
-
-      shelters.forEach(m => {
-        m.setOpacity(m.hazard[type] ? 1 : 0);
-      });
-    };
-  });
-
-  /* =====================
-     LOCATION & ROUTING
-  ====================== */
-  let userMarker = null;
-  let route = null;
-
-  document.getElementById('locate').onclick = () => {
-    navigator.geolocation.getCurrentPosition(pos => {
-      const latlng = [pos.coords.latitude, pos.coords.longitude];
-      if (userMarker) map.removeLayer(userMarker);
-      userMarker = L.marker(latlng).addTo(map)
-        .bindPopup('現在地')
-        .openPopup();
-      map.setView(latlng, 14);
-    });
-  };
-
-  document.getElementById('route').onclick = () => {
-    if (!userMarker) {
-      alert('現在地を取得してください');
-      return;
-    }
-
-    const user = userMarker.getLatLng();
-    const candidates = shelters.filter(
-      m => !currentHazard || m.hazard[currentHazard]
-    );
-
-    if (!candidates.length) {
-      alert('対応する避難所がありません');
-      return;
-    }
-
-    let nearest = candidates[0];
-    let minDist = map.distance(user, nearest.getLatLng());
-
-    candidates.forEach(m => {
-      const d = map.distance(user, m.getLatLng());
-      if (d < minDist) {
-        minDist = d;
-        nearest = m;
-      }
-    });
-
-    if (route) map.removeControl(route);
-
-    route = L.Routing.control({
-      waypoints: [user, nearest.getLatLng()],
-      addWaypoints: false,
-      show: false
-    }).addTo(map);
-  };
-</script>
-
+    </script>
 </body>
 </html>
