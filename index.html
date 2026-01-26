@@ -129,9 +129,9 @@
 
   let currentHazard = null;
 
-  // --- Shelter data (official-like sample structure) ---
-  const shelters = [];
 
+  // --- Shelter data (official API / correct properties) ---
+  const shelters = [];
 
   fetch('https://motohasystem.github.io/jp-shelter-api/api/v0/emergency/01.json')
     .then(res => res.json())
