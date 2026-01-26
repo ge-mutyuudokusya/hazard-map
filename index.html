@@ -3,16 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-
 <title>北海道ハザードマップ</title>
 
-<!-- PWA / 全画面 -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
 
-<!-- Leaflet -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
 <style>
@@ -23,11 +17,8 @@ html, body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-#map {
-  height: 100%;
-}
+#map { height: 100%; }
 
-/* 注意書き */
 .notice {
   position: fixed;
   top: 10px;
@@ -41,7 +32,6 @@ html, body {
   z-index: 1000;
 }
 
-/* スマホ下部操作バー */
 .control-panel {
   position: fixed;
   bottom: env(safe-area-inset-bottom);
@@ -58,7 +48,6 @@ html, body {
 .control-panel label,
 .control-panel button {
   font-size: 12px;
-  text-align: center;
 }
 
 .control-panel button {
@@ -88,19 +77,21 @@ html, body {
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-// --- 地図初期化（北海道） ---
+// --------------------
+// 地図初期化（北海道）
+// --------------------
 const map = L.map('map', {
-  zoomControl: true,
   minZoom: 6,
   maxZoom: 16
 }).setView([43.5, 142.7], 7);
 
-// ベースマップ
 L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
   attribution: '© 国土地理院'
 }).addTo(map);
 
-// --- ハザードレイヤー ---
+// --------------------
+// ハザードレイヤー
+// --------------------
 const floodLayer = L.tileLayer(
   'https://disaportal.gsi.go.jp/data/raster/01_flood_l2_shinsuishin/{z}/{x}/{y}.png',
   { opacity: 0.6 }
@@ -108,7 +99,7 @@ const floodLayer = L.tileLayer(
 
 const tsunamiLayer = L.tileLayer(
   'https://disaportal.gsi.go.jp/data/raster/04_tsunami/{z}/{x}/{y}.png',
-  { opacity: 0.6 }
+  { opacity: 0.6, minZoom: 5, maxZoom: 13 }
 );
 
 const landslideLayer = L.tileLayer(
@@ -116,21 +107,66 @@ const landslideLayer = L.tileLayer(
   { opacity: 0.6 }
 );
 
-// 避難所（国土地理院 安定版）
-fetch('https://disaportal.gsi.go.jp/hazardmap_data/evacuation/evacuation.geojson')
+// --------------------
+// 避難所レイヤー
+// --------------------
+const evacuationLayer = L.geoJSON(null, {
+  pointToLayer: (feature, latlng) =>
+    L.circleMarker(latlng, {
+      radius: 6,
+      color: '#0055ff',
+      fillColor: '#3399ff',
+      fillOpacity: 0.9
+    }),
+  onEachFeature: (feature, layer) => {
+    const name =
+      feature.properties?.name ||
+      feature.properties?.指定緊急避難場所 ||
+      '避難所';
+    layer.bindPopup(name);
+  }
+});
+
+// 初期表示
+floodLayer.addTo(map);
+tsunamiLayer.addTo(map);
+landslideLayer.addTo(map);
+evacuationLayer.addTo(map);
+
+// --------------------
+// 北海道の範囲（BBox）
+// --------------------
+const HOKKAIDO = {
+  minLat: 41.3,
+  maxLat: 45.7,
+  minLng: 139.3,
+  maxLng: 148.9
+};
+
+// --------------------
+// 避難所データ取得（北海道限定）
+// --------------------
+fetch('https://disaportal.gsi.go.jp/data/vector/evacuation/evacuation.geojson')
   .then(res => res.json())
   .then(data => {
-    evacuationLayer.addData(data);
-    console.log('避難所データ読み込み完了', data.features.length);
-  })
-  .catch(err => alert('避難所データを取得できません'));
+    const hokkaidoOnly = {
+      type: 'FeatureCollection',
+      features: data.features.filter(f => {
+        const [lng, lat] = f.geometry.coordinates;
+        return (
+          lat >= HOKKAIDO.minLat &&
+          lat <= HOKKAIDO.maxLat &&
+          lng >= HOKKAIDO.minLng &&
+          lng <= HOKKAIDO.maxLng
+        );
+      })
+    };
+    evacuationLayer.addData(hokkaidoOnly);
+  });
 
-// 避難所データ取得
-fetch('https://www.gsi.go.jp/common/000221878.geojson')
-  .then(res => res.json())
-  .then(data => evacuationLayer.addData(data));
-
-// チェックボックス制御
+// --------------------
+// チェックボックス
+// --------------------
 document.getElementById('flood').onchange = e =>
   e.target.checked ? map.addLayer(floodLayer) : map.removeLayer(floodLayer);
 
@@ -143,61 +179,52 @@ document.getElementById('landslide').onchange = e =>
 document.getElementById('evacuation').onchange = e =>
   e.target.checked ? map.addLayer(evacuationLayer) : map.removeLayer(evacuationLayer);
 
-// --- 現在地 ---
+// --------------------
+// 現在地 & 避難ルート
+// --------------------
 let currentMarker, accuracyCircle, routeLine;
 
 document.getElementById('locateBtn').onclick = () => {
-  if (!navigator.geolocation) {
-    alert('位置情報が利用できません');
-    return;
-  }
+  navigator.geolocation.getCurrentPosition(pos => {
+    const { latitude, longitude, accuracy } = pos.coords;
 
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      const acc = pos.coords.accuracy;
+    if (currentMarker) {
+      map.removeLayer(currentMarker);
+      map.removeLayer(accuracyCircle);
+      if (routeLine) map.removeLayer(routeLine);
+    }
 
-      if (currentMarker) {
-        map.removeLayer(currentMarker);
-        map.removeLayer(accuracyCircle);
-        if (routeLine) map.removeLayer(routeLine);
+    currentMarker = L.marker([latitude, longitude])
+      .addTo(map)
+      .bindPopup('現在地')
+      .openPopup();
+
+    accuracyCircle = L.circle([latitude, longitude], {
+      radius: accuracy,
+      fillOpacity: 0.15
+    }).addTo(map);
+
+    map.setView([latitude, longitude], 14);
+
+    let nearest = null;
+    let minDist = Infinity;
+
+    evacuationLayer.eachLayer(layer => {
+      const d = map.distance([latitude, longitude], layer.getLatLng());
+      if (d < minDist) {
+        minDist = d;
+        nearest = layer;
       }
+    });
 
-      currentMarker = L.marker([lat, lng]).addTo(map)
-        .bindPopup('現在地');
-
-      accuracyCircle = L.circle([lat, lng], {
-        radius: acc,
-        color: 'blue',
-        fillOpacity: 0.15
-      }).addTo(map);
-
-      map.setView([lat, lng], 14);
-
-      // 最寄り避難所
-      let nearest = null;
-      let minDist = Infinity;
-
-      evacuationLayer.eachLayer(layer => {
-        const d = map.distance([lat, lng], layer.getLatLng());
-        if (d < minDist) {
-          minDist = d;
-          nearest = layer;
-        }
-      });
-
-      if (nearest) {
-        nearest.openPopup();
-        routeLine = L.polyline(
-          [[lat, lng], nearest.getLatLng()],
-          { dashArray: '5,5', color: 'red' }
-        ).addTo(map);
-      }
-    },
-    () => alert('位置情報の取得が拒否されました'),
-    { enableHighAccuracy: true }
-  );
+    if (nearest) {
+      routeLine = L.polyline(
+        [[latitude, longitude], nearest.getLatLng()],
+        { color: 'red', dashArray: '6,4' }
+      ).addTo(map);
+      nearest.openPopup();
+    }
+  });
 };
 </script>
 </body>
