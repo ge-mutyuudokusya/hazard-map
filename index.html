@@ -126,24 +126,32 @@
   // --- Shelter data (official-like sample structure) ---
   const shelters = [];
 
+  // --- Shelter data (official API / correct properties) ---
+  const shelters = [];
+
   fetch('https://motohasystem.github.io/jp-shelter-api/api/v0/emergency/01.json')
     .then(res => res.json())
     .then(data => {
       data.features.forEach(f => {
-        const p = f.properties;
-        const c = f.geometry.coordinates;
-        const marker = L.marker([c[1], c[0]]);
+        if (!f.geometry || f.geometry.type !== 'Point') return;
 
+        const p = f.properties || {};
+        const [lng, lat] = f.geometry.coordinates;
+
+        const marker = L.marker([lat, lng]);
+
+        // 正しい災害フラグ（公式仕様）
         marker.hazard = {
-          tsunami: p.tsunami === '1',
-          flood: p.flood === '1',
-          landslide: p.landslide === '1'
+          tsunami: p.tsunami === true || p.tsunami === '1',
+          flood: p.flood === true || p.flood === '1',
+          landslide: p.landslide === true || p.landslide === '1'
         };
 
         marker.bindPopup(`
-          <strong>${p.name}</strong><br>
-          標高: ${p.elevation || '不明'}m<br>
-          収容人数: ${p.capacity || '不明'}人<br>
+          <strong>${p.name || '名称不明'}</strong><br>
+          住所: ${p.address || '不明'}<br>
+          標高: ${p.elevation ?? '不明'} m<br>
+          収容人数: ${p.capacity ?? '不明'} 人<br>
           🌊 津波: ${marker.hazard.tsunami ? '⭕' : '❌'}<br>
           💧 洪水: ${marker.hazard.flood ? '⭕' : '❌'}<br>
           ⛰ 土砂: ${marker.hazard.landslide ? '⭕' : '❌'}
@@ -152,6 +160,11 @@
         shelters.push(marker);
         marker.addTo(map);
       });
+    })
+    .catch(err => {
+      alert('避難所データの読み込みに失敗しました');
+      console.error(err);
+    });
     });
 
   // --- Hazard filter ---
