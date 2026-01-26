@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+<title>北海道ハザードマップ</title>
+
+<!-- PWA / 全画面 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+#map {
+  height: 100%;
+}
+
+/* 注意書き */
+.notice {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.65);
+  color: white;
+  padding: 6px 10px;
+  font-size: 11px;
+  border-radius: 10px;
+  z-index: 1000;
+}
+
+/* スマホ下部操作バー */
+.control-panel {
+  position: fixed;
+  bottom: env(safe-area-inset-bottom);
+  left: 0;
+  width: 100%;
+  background: rgba(255,255,255,0.95);
+  padding: 10px 6px;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.25);
+  display: flex;
+  justify-content: space-around;
+  z-index: 1000;
+}
+
+.control-panel label,
+.control-panel button {
+  font-size: 12px;
+  text-align: center;
+}
+
+.control-panel button {
+  border: none;
+  border-radius: 10px;
+  padding: 6px 10px;
+  background: #007aff;
+  color: white;
+}
+</style>
+</head>
+
+<body>
+<div id="map"></div>
+
+<div class="notice">
+  ※参考情報です。避難は自治体の指示に従ってください
+</div>
+
+<div class="control-panel">
+  <label><input type="checkbox" id="flood" checked> 洪水</label>
+  <label><input type="checkbox" id="tsunami" checked> 津波</label>
+  <label><input type="checkbox" id="landslide" checked> 土砂</label>
+  <label><input type="checkbox" id="evacuation" checked> 避難所</label>
+  <button id="locateBtn">📍 現在地</button>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// --- 地図初期化（北海道） ---
+const map = L.map('map', {
+  zoomControl: true,
+  minZoom: 6,
+  maxZoom: 16
+}).setView([43.5, 142.7], 7);
+
+// ベースマップ
+L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+  attribution: '© 国土地理院'
+}).addTo(map);
+
+// --- ハザードレイヤー ---
+const floodLayer = L.tileLayer(
+  'https://disaportal.gsi.go.jp/data/raster/01_flood_l2_shinsuishin/{z}/{x}/{y}.png',
+  { opacity: 0.6 }
+);
+
+const tsunamiLayer = L.tileLayer(
+  'https://disaportal.gsi.go.jp/data/raster/04_tsunami/{z}/{x}/{y}.png',
+  { opacity: 0.6 }
+);
+
+const landslideLayer = L.tileLayer(
+  'https://disaportal.gsi.go.jp/data/raster/05_dosekiryukeikaikuiki/{z}/{x}/{y}.png',
+  { opacity: 0.6 }
+);
+
+// 避難所
+const evacuationLayer = L.geoJSON(null, {
+  pointToLayer: (feature, latlng) =>
+    L.circleMarker(latlng, {
+      radius: 5,
+      color: 'blue',
+      fillOpacity: 0.8
+    }),
+  onEachFeature: (feature, layer) => {
+    layer.bindPopup(feature.properties.name || '避難所');
+  }
+});
+
+// 初期表示
+floodLayer.addTo(map);
+tsunamiLayer.addTo(map);
+landslideLayer.addTo(map);
+evacuationLayer.addTo(map);
+
+// 避難所データ取得
+fetch('https://www.gsi.go.jp/common/000221878.geojson')
+  .then(res => res.json())
+  .then(data => evacuationLayer.addData(data));
+
+// チェックボックス制御
+document.getElementById('flood').onchange = e =>
+  e.target.checked ? map.addLayer(floodLayer) : map.removeLayer(floodLayer);
+
+document.getElementById('tsunami').onchange = e =>
+  e.target.checked ? map.addLayer(tsunamiLayer) : map.removeLayer(tsunamiLayer);
+
+document.getElementById('landslide').onchange = e =>
+  e.target.checked ? map.addLayer(landslideLayer) : map.removeLayer(landslideLayer);
+
+document.getElementById('evacuation').onchange = e =>
+  e.target.checked ? map.addLayer(evacuationLayer) : map.removeLayer(evacuationLayer);
+
+// --- 現在地 ---
+let currentMarker, accuracyCircle, routeLine;
+
+document.getElementById('locateBtn').onclick = () => {
+  if (!navigator.geolocation) {
+    alert('位置情報が利用できません');
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const acc = pos.coords.accuracy;
+
+      if (currentMarker) {
+        map.removeLayer(currentMarker);
+        map.removeLayer(accuracyCircle);
+        if (routeLine) map.removeLayer(routeLine);
+      }
+
+      currentMarker = L.marker([lat, lng]).addTo(map)
+        .bindPopup('現在地');
+
+      accuracyCircle = L.circle([lat, lng], {
+        radius: acc,
+        color: 'blue',
+        fillOpacity: 0.15
+      }).addTo(map);
+
+      map.setView([lat, lng], 14);
+
+      // 最寄り避難所
+      let nearest = null;
+      let minDist = Infinity;
+
+      evacuationLayer.eachLayer(layer => {
+        const d = map.distance([lat, lng], layer.getLatLng());
+        if (d < minDist) {
+          minDist = d;
+          nearest = layer;
+        }
+      });
+
+      if (nearest) {
+        nearest.openPopup();
+        routeLine = L.polyline(
+          [[lat, lng], nearest.getLatLng()],
+          { dashArray: '5,5', color: 'red' }
+        ).addTo(map);
+      }
+    },
+    () => alert('位置情報の取得が拒否されました'),
+    { enableHighAccuracy: true }
+  );
+};
+</script>
+</body>
+</html>
