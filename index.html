@@ -116,24 +116,14 @@ const landslideLayer = L.tileLayer(
   { opacity: 0.6 }
 );
 
-// 避難所
-const evacuationLayer = L.geoJSON(null, {
-  pointToLayer: (feature, latlng) =>
-    L.circleMarker(latlng, {
-      radius: 5,
-      color: 'blue',
-      fillOpacity: 0.8
-    }),
-  onEachFeature: (feature, layer) => {
-    layer.bindPopup(feature.properties.name || '避難所');
-  }
-});
-
-// 初期表示
-floodLayer.addTo(map);
-tsunamiLayer.addTo(map);
-landslideLayer.addTo(map);
-evacuationLayer.addTo(map);
+// 避難所（国土地理院 安定版）
+fetch('https://disaportal.gsi.go.jp/hazardmap_data/evacuation/evacuation.geojson')
+  .then(res => res.json())
+  .then(data => {
+    evacuationLayer.addData(data);
+    console.log('避難所データ読み込み完了', data.features.length);
+  })
+  .catch(err => alert('避難所データを取得できません'));
 
 // 避難所データ取得
 fetch('https://www.gsi.go.jp/common/000221878.geojson')
