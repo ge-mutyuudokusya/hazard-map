@@ -71,14 +71,14 @@ html, body {
   <label><input type="checkbox" id="flood" checked> 洪水</label>
   <label><input type="checkbox" id="tsunami" checked> 津波</label>
   <label><input type="checkbox" id="landslide" checked> 土砂</label>
-  <label><input type="checkbox" id="evacuation" checked> 避難所</label>
+  <label><input type="checkbox" id="evacuation" checked> 避難場所</label>
   <button id="locateBtn">📍 現在地</button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 // --------------------
-// 地図初期化（北海道）
+// 地図初期化
 // --------------------
 const map = L.map('map', {
   minZoom: 6,
@@ -108,7 +108,7 @@ const landslideLayer = L.tileLayer(
 );
 
 // --------------------
-// 避難所レイヤー
+// 避難場所レイヤー
 // --------------------
 const evacuationLayer = L.geoJSON(null, {
   pointToLayer: (feature, latlng) =>
@@ -122,7 +122,7 @@ const evacuationLayer = L.geoJSON(null, {
     const name =
       feature.properties?.name ||
       feature.properties?.指定緊急避難場所 ||
-      '避難所';
+      '避難場所';
     layer.bindPopup(name);
   }
 });
@@ -134,7 +134,7 @@ landslideLayer.addTo(map);
 evacuationLayer.addTo(map);
 
 // --------------------
-// 北海道の範囲（BBox）
+// 北海道BBox
 // --------------------
 const HOKKAIDO = {
   minLat: 41.3,
@@ -144,20 +144,20 @@ const HOKKAIDO = {
 };
 
 // --------------------
-// 避難所データ取得（北海道限定）
-// --------------------fetch('https://disaportal.gsi.go.jp/data/vector/evacuation/evacuation.geojson')
+// 避難場所データ取得（安全版）
+// --------------------
+fetch('https://disaportal.gsi.go.jp/data/vector/evacuation/evacuation.geojson')
   .then(res => res.json())
   .then(data => {
-
     const features = data.features.filter(f => {
       if (!f.geometry) return false;
       if (f.geometry.type !== 'Point') return false;
 
-      const coords = f.geometry.coordinates;
-      if (!Array.isArray(coords) || coords.length < 2) return false;
+      const c = f.geometry.coordinates;
+      if (!Array.isArray(c) || c.length < 2) return false;
 
-      const lng = coords[0];
-      const lat = coords[1];
+      const lng = c[0];
+      const lat = c[1];
 
       return (
         lat >= HOKKAIDO.minLat &&
@@ -167,20 +167,17 @@ const HOKKAIDO = {
       );
     });
 
-    console.log('北海道の避難所数:', features.length);
+    console.log('北海道の避難場所数:', features.length);
 
     evacuationLayer.addData({
       type: 'FeatureCollection',
       features
     });
   })
-  .catch(err => {
-    console.error('避難所データ取得失敗', err);
-  });
-
+  .catch(err => console.error(err));
 
 // --------------------
-// チェックボックス
+// チェックボックス制御
 // --------------------
 document.getElementById('flood').onchange = e =>
   e.target.checked ? map.addLayer(floodLayer) : map.removeLayer(floodLayer);
