@@ -3,15 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>北海道全域ハザードマップ・避難ナビ</title>
+    <title>北海道防災ハザードマップ</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-
-    <style>
-        body { margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; overflow: hidden; }
+ <style>
+        body { padding: 0; margin: 0; }
+        html, body, #map { height: 100%; width: 100vw; }
+        #controls {
+            position: absolute; top: 10px; left: 50px; z-index: 1000;
+            background: white; padding: 10px; border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2); font-size: 14px;
+            max-width: 200px;
+        }
+        .legend { background: white; padding: 5px; line-height: 1.5; }
+                body { margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; overflow: hidden; }
         #map { height: 100vh; width: 100%; }
 
         /* UIパネル */
@@ -60,126 +68,103 @@
 </head>
 <body>
 
-    <div class="controls">
-        <button class="btn-action btn-gps" onclick="findNearestShelter()">📍 最寄りの避難所を探す</button>
-        <div style="font-size: 11px; color: #666; margin-top: 5px;">
-            ※位置情報を許可してください<br>
-            ※赤いエリア：ハザード情報
-        </div>
-    </div>
-
-    <div id="map"></div>
+<div id="controls">
+    <strong>ハザード表示切替</strong><br>
+    <label><input type="checkbox" id="flood"> 洪水浸水想定</label><br>
+    <label><input type="checkbox" id="landslide"> 土砂災害警戒区域</label><br>
+    <label><input type="checkbox" id="tsunami"> 津波浸水想定</label><hr>
+    <button onclick="findNearestShelter()">現在地から一番近い避難所へ</button>
+</div>
+<div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+    // 1. マップの初期化（北海道を中心に設定）
+    const map = L.map('map', {
+        center: [43.5, 142.5],
+        zoom: 7,
+        maxBounds: [[41.0, 139.0], [46.0, 149.0]] // 北海道のみに制限
+    });
 
-    <script>
-        // --- 1. 初期設定 ---
-        const map = L.map('map', { zoomControl: false }).setView([43.064, 141.346], 7); // 北海道全域
-        L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-        // ベース地図 (OpenStreetMap)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // 背景地図（国土地理院 標準地図）
+       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
-        // --- 2. ハザードマップレイヤー (国土地理院) ---
-        const hazardLayers = {
-            "🌊 津波": L.tileLayer('https://disaportaldata.gsi.go.jp/raster/04_tsunami_newlegend_data/{z}/{x}/{y}.png', { opacity: 0.6 }),
-            "💧 洪水": L.tileLayer('https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png', { opacity: 0.6 }),
-            "⛰️ 土砂": L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_dosha_kiken_nadare_data/{z}/{x}/{y}.png', { opacity: 0.6 })
-        };
-        // 初期状態で全部ONにする場合は .addTo(map) をつける
-        hazardLayers["⛰️ 土砂"].addTo(map); 
-        L.control.layers(null, hazardLayers, { collapsed: false, position: 'topright' }).addTo(map);
-
-        // --- 3. 避難所データの取得と表示 ---
-        // 本来は北海道の全データをAPI等から取得しますが、ここでは動作サンプルとして
-        // 北海道の主要な避難所地点を配列化。全域対応時は外部JSON化を推奨。
-        const shelters = [
-            { name: "札幌市中央体育館", lat: 43.067, lng: 141.362 },
-            { name: "函館市役所", lat: 41.768, lng: 140.729 },
-            { name: "旭川市大雪アリーナ", lat: 43.763, lng: 142.353 },
-            { name: "釧路市生涯学習センター", lat: 42.978, lng: 144.381 },
-            { name: "帯広市総合体育館", lat: 42.923, lng: 143.204 },
-            { name: "北見市役所", lat: 43.803, lng: 143.894 },
-            { name: "稚内市役所", lat: 45.415, lng: 141.673 }
-            // ※ここに数千件のデータを追加可能
-        ];
-
-        const markers = L.markerClusterGroup();
-        const shelterIcon = L.icon({
-            iconUrl: 'https://cdn-icons-png.flaticon.com/512/819/819865.png',
-            iconSize: [30, 30], iconAnchor: [15, 30]
+    // 2. ハザードレイヤーの設定（国土地理院タイル）
+    const layers = {
+        flood: L.tileLayer('https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png', {opacity: 0.7}),
+        landslide: L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_dosekiryukeikaikuiki/{z}/{x}/{y}.png', {opacity: 0.7}),
+        tsunami: L.tileLayer('https://disaportaldata.gsi.go.jp/raster/04_tsunami_newlegend_data/{z}/{x}/{y}.png', {opacity: 0.7})
+    };
+    
+    // チェックボックス連動
+    document.querySelectorAll('#controls input').forEach(input => {
+        input.addEventListener('change', (e) => {
+            if (e.target.checked) layers[e.target.id].addTo(map);
+            else map.removeLayer(layers[e.target.id]);
         });
+    });
 
-        shelters.forEach(s => {
-            const m = L.marker([s.lat, s.lng], { icon: shelterIcon })
-                       .bindPopup(`<b>${s.name}</b><br><button onclick="calcRoute(${s.lat},${s.lng})">ここへ行く</button>`);
-            markers.addLayer(m);
-        });
-        map.addLayer(markers);
-
-        // --- 4. GPSと最寄り検索機能 ---
-        let userMarker, routingControl;
-
-        function findNearestShelter() {
-            if (!navigator.geolocation) return alert("GPS非対応です");
-
-            navigator.geolocation.getCurrentPosition(pos => {
-                const uLat = pos.coords.latitude;
-                const uLng = pos.coords.longitude;
-                const userLoc = L.latLng(uLat, uLng);
-
-                // 現在地マーカー表示
-                if (userMarker) map.removeLayer(userMarker);
-                userMarker = L.circleMarker(userLoc, { className: 'current-location-marker', radius: 10 }).addTo(map);
-                
-                // 北海道内にいるかチェック（簡易版）
-                if (uLat < 41 || uLat > 46 || uLng < 139 || uLng > 149) {
-                    alert("北海道外にいるようです。北海道内の避難所を検索します。");
+    // 3. 避難所データの読み込み (アップロードされたgeojsonを使用)
+    let sheltersLayer;
+    fetch('01000_1.geojson')
+        .then(response => response.json())
+        .then(data => {
+            sheltersLayer = L.geoJSON(data, {
+                onEachFeature: function (feature, layer) {
+                    layer.bindPopup(`<strong>${feature.properties["施設・場所名"]}</strong><br>${feature.properties["住所"]}<br><button onclick="startRouting(${feature.geometry.coordinates[1]}, ${feature.geometry.coordinates[0]})">ここへのルートを表示</button>`);
+                },
+                pointToLayer: function (feature, latlng) {
+                    return L.circleMarker(latlng, { radius: 6, fillColor: "#ff7800", color: "#000", weight: 1, opacity: 1, fillOpacity: 0.8 });
                 }
-
-                // 最も近い避難所を探す
-                let nearest = null;
-                let minDist = Infinity;
-
-                shelters.forEach(s => {
-                    const dist = userLoc.distanceTo(L.latLng(s.lat, s.lng));
-                    if (dist < minDist) {
-                        minDist = dist;
-                        nearest = s;
-                    }
-                });
-
-                if (nearest) {
-                    map.flyTo([nearest.lat, nearest.lng], 15);
-                    setTimeout(() => {
-                        calcRoute(nearest.lat, nearest.lng, userLoc);
-                        alert(`最寄りの「${nearest.name}」までのルートを表示します。`);
-                    }, 1000);
-                }
-            }, () => alert("位置情報を取得できませんでした"));
-        }
-
-        // --- 5. ルート描画 ---
-        window.calcRoute = function(destLat, destLng, startLoc = null) {
-            if (!startLoc && !userMarker) return alert("先に現在地を取得してください");
-            const start = startLoc || userMarker.getLatLng();
-
-            if (routingControl) map.removeControl(routingControl);
-
-            routingControl = L.Routing.control({
-                waypoints: [start, L.latLng(destLat, destLng)],
-                lineOptions: { styles: [{ color: '#2ecc71', weight: 6 }] },
-                createMarker: () => null, // 余計なマーカーを消す
-                addWaypoints: false,
-                draggableWaypoints: false,
-                show: false // 詳細ナビパネルはスマホだと邪魔なので隠す
             }).addTo(map);
-        };
+        });
 
-    </script>
+    // 4. ルート案内機能
+    let routingControl;
+    let userLocation;
+
+    map.locate({setView: false, watch: true});
+    map.on('locationfound', (e) => {
+        userLocation = e.latlng;
+        L.marker(e.latlng).addTo(map).bindPopup("現在地").openPopup();
+    });
+
+    function startRouting(destLat, destLng) {
+        if (!userLocation) {
+            alert("現在地が取得できていません。位置情報を許可してください。");
+            return;
+        }
+        if (routingControl) map.removeControl(routingControl);
+        
+        routingControl = L.Routing.control({
+            waypoints: [
+                L.latLng(userLocation.lat, userLocation.lng),
+                L.latLng(destLat, destLng)
+            ],
+            routeWhileDragging: true,
+            language: 'ja',
+            createMarker: function() { return null; } // 余計なマーカーを消す
+        }).addTo(map);
+    }
+
+    function findNearestShelter() {
+        if (!userLocation || !sheltersLayer) return;
+        let minDist = Infinity;
+        let nearest;
+        sheltersLayer.eachLayer(layer => {
+            let dist = userLocation.distanceTo(layer.getLatLng());
+            if (dist < minDist) {
+                minDist = dist;
+                nearest = layer.getLatLng();
+            }
+        });
+        if (nearest) startRouting(nearest.lat, nearest.lng);
+    }
+</script>
+
 </body>
 </html>
