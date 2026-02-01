@@ -1,53 +1,231 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>北海道 避難場所マップ</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        #map { height: 100vh; width: 100%; }
-        body { margin: 0; padding: 0; }
-        .info-popup { font-size: 14px; line-height: 1.6; }
-        .info-popup h3 { margin: 0 0 10px; font-size: 16px; color: #d9534f; }
-    </style>
-</head>
-<body>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>北海道ハザードマップ</title>
 
+<meta name="theme-color" content="#000000">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+#map { height: 100%; }
+
+.notice {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.65);
+  color: white;
+  padding: 6px 10px;
+  font-size: 11px;
+  border-radius: 10px;
+  z-index: 1000;
+}
+
+.control-panel {
+  position: fixed;
+  bottom: env(safe-area-inset-bottom);
+  left: 0;
+  width: 100%;
+  background: rgba(255,255,255,0.95);
+  padding: 10px 6px;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.25);
+  display: flex;
+  justify-content: space-around;
+  z-index: 1000;
+}
+
+.control-panel label,
+.control-panel button {
+  font-size: 12px;
+}
+
+.control-panel button {
+  border: none;
+  border-radius: 10px;
+  padding: 6px 10px;
+  background: #007aff;
+  color: white;
+}
+</style>
+</head>
+
+<body>
 <div id="map"></div>
+
+<div class="notice">
+  ※参考情報です。避難は自治体の指示に従ってください
+</div>
+
+<div class="control-panel">
+  <label><input type="checkbox" id="flood" checked> 洪水</label>
+  <label><input type="checkbox" id="tsunami" checked> 津波</label>
+  <label><input type="checkbox" id="landslide" checked> 土砂</label>
+  <label><input type="checkbox" id="evacuation" checked> 避難所</label>
+  <button id="locateBtn">📍 現在地</button>
+</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    // 地図の初期化（北海道付近を中心に設定）
-    const map = L.map('map').setView([43.0, 142.5], 7);
+// --------------------
+// 地図初期化（北海道）
+// --------------------
+const map = L.map('map', {
+  minZoom: 6,
+  maxZoom: 16
+}).setView([43.5, 142.7], 7);
 
-    // 背景地図（OpenStreetMap）の読み込み
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+  attribution: '© 国土地理院'
+}).addTo(map);
+
+// --------------------
+// ハザードレイヤー
+// --------------------
+const floodLayer = L.tileLayer(
+  'https://disaportal.gsi.go.jp/data/raster/01_flood_l2_shinsuishin/{z}/{x}/{y}.png',
+  { opacity: 0.6 }
+);
+
+const tsunamiLayer = L.tileLayer(
+  'https://disaportal.gsi.go.jp/data/raster/04_tsunami/{z}/{x}/{y}.png',
+  { opacity: 0.6, minZoom: 5, maxZoom: 13 }
+);
+
+const landslideLayer = L.tileLayer(
+  'https://disaportal.gsi.go.jp/data/raster/05_dosekiryukeikaikuiki/{z}/{x}/{y}.png',
+  { opacity: 0.6 }
+);
+
+// --------------------
+// 避難所レイヤー
+// --------------------
+const evacuationLayer = L.geoJSON(null, {
+  pointToLayer: (feature, latlng) =>
+    L.circleMarker(latlng, {
+      radius: 6,
+      color: '#0055ff',
+      fillColor: '#3399ff',
+      fillOpacity: 0.9
+    }),
+  onEachFeature: (feature, layer) => {
+    const name =
+      feature.properties?.name ||
+      feature.properties?.指定緊急避難場所 ||
+      '避難所';
+    layer.bindPopup(name);
+  }
+});
+
+// 初期表示
+floodLayer.addTo(map);
+tsunamiLayer.addTo(map);
+landslideLayer.addTo(map);
+evacuationLayer.addTo(map);
+
+// --------------------
+// 北海道の範囲（BBox）
+// --------------------
+const HOKKAIDO = {
+  minLat: 41.3,
+  maxLat: 45.7,
+  minLng: 139.3,
+  maxLng: 148.9
+};
+
+// --------------------
+// 避難所データ取得（北海道限定）
+// --------------------
+fetch('https://disaportal.gsi.go.jp/data/vector/evacuation/evacuation.geojson')
+  .then(res => res.json())
+  .then(data => {
+    const hokkaidoOnly = {
+      type: 'FeatureCollection',
+      features: data.features.filter(f => {
+        const [lng, lat] = f.geometry.coordinates;
+        return (
+          lat >= HOKKAIDO.minLat &&
+          lat <= HOKKAIDO.maxLat &&
+          lng >= HOKKAIDO.minLng &&
+          lng <= HOKKAIDO.maxLng
+        );
+      })
+    };
+    evacuationLayer.addData(hokkaidoOnly);
+  });
+
+// --------------------
+// チェックボックス
+// --------------------
+document.getElementById('flood').onchange = e =>
+  e.target.checked ? map.addLayer(floodLayer) : map.removeLayer(floodLayer);
+
+document.getElementById('tsunami').onchange = e =>
+  e.target.checked ? map.addLayer(tsunamiLayer) : map.removeLayer(tsunamiLayer);
+
+document.getElementById('landslide').onchange = e =>
+  e.target.checked ? map.addLayer(landslideLayer) : map.removeLayer(landslideLayer);
+
+document.getElementById('evacuation').onchange = e =>
+  e.target.checked ? map.addLayer(evacuationLayer) : map.removeLayer(evacuationLayer);
+
+// --------------------
+// 現在地 & 避難ルート
+// --------------------
+let currentMarker, accuracyCircle, routeLine;
+
+document.getElementById('locateBtn').onclick = () => {
+  navigator.geolocation.getCurrentPosition(pos => {
+    const { latitude, longitude, accuracy } = pos.coords;
+
+    if (currentMarker) {
+      map.removeLayer(currentMarker);
+      map.removeLayer(accuracyCircle);
+      if (routeLine) map.removeLayer(routeLine);
+    }
+
+    currentMarker = L.marker([latitude, longitude])
+      .addTo(map)
+      .bindPopup('現在地')
+      .openPopup();
+
+    accuracyCircle = L.circle([latitude, longitude], {
+      radius: accuracy,
+      fillOpacity: 0.15
     }).addTo(map);
 
-    // GeoJSONファイルの読み込み
-    fetch('01000_1.geojson')
-        .then(response => response.json())
-        .then(data => {
-            L.geoJSON(data, {
-                onEachFeature: function (feature, layer) {
-                    // ポップアップに表示する内容
-                    const props = feature.properties;
-                    const popupContent = `
-                        <div class="info-popup">
-                            <h3>${props['施設・場所名'] || '名称不明'}</h3>
-                            <b>住所:</b> ${props['住所'] || '不明'}<br>
-                            <b>受入対象者:</b> ${props['受入対象者'] || '制限なし'}<br>
-                            <b>備考:</b> ${props['備考'] || 'なし'}
-                        </div>
-                    `;
-                    layer.bindPopup(popupContent);
-                }
-            }).addTo(map);
-        })
-        .catch(error => console.error('Error loading the GeoJSON:', error));
-</script>
+    map.setView([latitude, longitude], 14);
 
+    let nearest = null;
+    let minDist = Infinity;
+
+    evacuationLayer.eachLayer(layer => {
+      const d = map.distance([latitude, longitude], layer.getLatLng());
+      if (d < minDist) {
+        minDist = d;
+        nearest = layer;
+      }
+    });
+
+    if (nearest) {
+      routeLine = L.polyline(
+        [[latitude, longitude], nearest.getLatLng()],
+        { color: 'red', dashArray: '6,4' }
+      ).addTo(map);
+      nearest.openPopup();
+    }
+  });
+};
+</script>
 </body>
 </html>
