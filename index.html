@@ -180,7 +180,7 @@ map.on('locationfound',e=>{
   userLatLng=e.latlng;
   if(!userMarker){
     userMarker=L.circleMarker(userLatLng,{
-      radius:7,color:'#007aff',fillColor:'#007aff',fillOpacity:1
+      radius:10,color:'#007aff',fillColor:'#007aff',fillOpacity:1
     }).addTo(map).bindPopup("現在地");
     map.setView(userLatLng,14);
   } else userMarker.setLatLng(userLatLng);
