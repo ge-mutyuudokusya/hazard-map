@@ -118,7 +118,7 @@
             iconSize: [30, 30], iconAnchor: [15, 30]
         });
 
-        shelters.forEach(s => {
+        sheltersLayer.forEach(s => {
             const m = L.marker([s.lat, s.lng], { icon: shelterIcon })
                        .bindPopup(`<b>${s.name}</b><br><button onclick="calcRoute(${s.lat},${s.lng})">ここへ行く</button>`);
             markers.addLayer(m);
@@ -149,7 +149,7 @@
                 let nearest = null;
                 let minDist = Infinity;
 
-                shelters.forEach(s => {
+                sheltersLayer.forEach(s => {
                     const dist = userLoc.distanceTo(L.latLng(s.lat, s.lng));
                     if (dist < minDist) {
                         minDist = dist;
