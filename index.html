@@ -115,13 +115,14 @@ button:active { opacity:0.85; }
 
 <body>
 <div id="map"></div>
-<details>
+
 <div id="panel">
+    <details>
+    <summary>ハザード表示</summary>
   <div class="panel-header">防災操作</div>
 
   <!-- 折りたたみ -->
-  
-    <summary>ハザード表示</summary>
+
     <div class="hazard-box">
       <div class="toggle">
         <span>洪水</span>
@@ -136,11 +137,12 @@ button:active { opacity:0.85; }
         <input type="checkbox" id="tsunami">
       </div>
     </div>
-
+  
 
   <button onclick="findNearestShelter()">最寄りの安全な避難所へ</button>
+</details>
 </div>
-  </details>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
 
