@@ -9,24 +9,147 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
 
 <style>
-html, body, #map { height:100%; margin:0; padding:0; }
-#controls {
-    position:absolute; top:10px; left:10px; z-index:1000;
-    background:#fff; padding:10px; border-radius:8px;
-    box-shadow:0 2px 10px rgba(0,0,0,0.3);
-    font-size:14px;
+html, body, #map {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+               "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
 }
-button { width:100%; margin-top:5px; }
+
+/* ===== コントロールUI ===== */
+#controls {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1000;
+  width: 240px;
+  background: #ffffffee;
+  backdrop-filter: blur(6px);
+  border-radius: 14px;
+  padding: 14px 14px 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+}
+
+#controls h2 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #222;
+}
+
+.section {
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 6px;
+}
+
+/* ===== トグルスイッチ ===== */
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.toggle label {
+  font-size: 14px;
+  color: #222;
+}
+
+.toggle input {
+  display: none;
+}
+
+.switch {
+  width: 44px;
+  height: 24px;
+  background: #ccc;
+  border-radius: 12px;
+  position: relative;
+  transition: background .2s;
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  top: 2px;
+  left: 2px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform .2s;
+}
+
+.toggle input:checked + .switch {
+  background: #1e88e5;
+}
+
+.toggle input:checked + .switch::after {
+  transform: translateX(20px);
+}
+
+/* ===== ボタン ===== */
+button {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  background: #1e88e5;
+  color: #fff;
+  cursor: pointer;
+}
+
+button:active {
+  transform: scale(0.98);
+}
 </style>
 </head>
 
 <body>
+
 <div id="controls">
-<strong>ハザード</strong><br>
-<label><input type="checkbox" id="flood"> 洪水</label><br>
-<label><input type="checkbox" id="landslide"> 土砂</label><br>
-<label><input type="checkbox" id="tsunami"> 津波</label><hr>
-<button onclick="findNearestShelter()">最寄り避難所へ</button>
+  <h2>防災ハザード</h2>
+
+  <div class="section">
+    <div class="section-title">表示する災害</div>
+
+    <div class="toggle">
+      <label>洪水</label>
+      <label>
+        <input type="checkbox" id="flood">
+        <span class="switch"></span>
+      </label>
+    </div>
+
+    <div class="toggle">
+      <label>土砂災害</label>
+      <label>
+        <input type="checkbox" id="landslide">
+        <span class="switch"></span>
+      </label>
+    </div>
+
+    <div class="toggle">
+      <label>津波</label>
+      <label>
+        <input type="checkbox" id="tsunami">
+        <span class="switch"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="section">
+    <button onclick="findNearestShelter()">最寄りの避難所へ</button>
+  </div>
 </div>
 
 <div id="map"></div>
@@ -39,29 +162,38 @@ button { width:100%; margin-top:5px; }
    マップ初期化
 ===================== */
 const map = L.map('map', {
-    center:[43.5,142.5],
-    zoom:7,
-    maxBounds:[[41,139],[46,149]]
+  center:[43.5,142.5],
+  zoom:7,
+  maxBounds:[[41,139],[46,149]]
 });
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    attribution:'© OpenStreetMap'
+  attribution:'© OpenStreetMap'
 }).addTo(map);
 
 /* =====================
    ハザードレイヤー
 ===================== */
 const hazardLayers = {
-    flood: L.tileLayer('https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png',{opacity:0.6}),
-    landslide: L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_dosekiryukeikaikuiki/{z}/{x}/{y}.png',{opacity:0.6}),
-    tsunami: L.tileLayer('https://disaportaldata.gsi.go.jp/raster/04_tsunami_newlegend_data/{z}/{x}/{y}.png',{opacity:0.6})
+  flood: L.tileLayer(
+    'https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png',
+    {opacity:0.6}
+  ),
+  landslide: L.tileLayer(
+    'https://disaportaldata.gsi.go.jp/raster/05_dosekiryukeikaikuiki/{z}/{x}/{y}.png',
+    {opacity:0.6}
+  ),
+  tsunami: L.tileLayer(
+    'https://disaportaldata.gsi.go.jp/raster/04_tsunami_newlegend_data/{z}/{x}/{y}.png',
+    {opacity:0.6}
+  )
 };
 
 document.querySelectorAll('#controls input').forEach(cb=>{
-    cb.addEventListener('change',e=>{
-        if(e.target.checked) hazardLayers[e.target.id].addTo(map);
-        else map.removeLayer(hazardLayers[e.target.id]);
-    });
+  cb.addEventListener('change',e=>{
+    if(e.target.checked) hazardLayers[e.target.id].addTo(map);
+    else map.removeLayer(hazardLayers[e.target.id]);
+  });
 });
 
 /* =====================
@@ -73,17 +205,17 @@ let rangeCircle = null;
 
 map.locate({watch:true, enableHighAccuracy:true});
 map.on('locationfound', e=>{
-    userLatLng = e.latlng;
+  userLatLng = e.latlng;
 
-    if(!userMarker){
-        userMarker = L.marker(userLatLng).addTo(map).bindPopup("現在地");
-    } else {
-        userMarker.setLatLng(userLatLng);
-    }
+  if(!userMarker){
+    userMarker = L.marker(userLatLng).addTo(map).bindPopup("現在地");
+  } else {
+    userMarker.setLatLng(userLatLng);
+  }
 
-    if(rangeCircle){
-        rangeCircle.setLatLng(userLatLng);
-    }
+  if(rangeCircle){
+    rangeCircle.setLatLng(userLatLng);
+  }
 });
 
 /* =====================
@@ -95,106 +227,102 @@ let sheltersLayer = L.layerGroup().addTo(map);
 fetch('01000_1.geojson')
 .then(r=>r.json())
 .then(data=>{
-    shelters = data.features;
-    drawShelters();
+  shelters = data.features;
+  drawShelters();
 });
 
-/* 災害に合った避難所判定（拡張可能） */
 function isShelterAllowed(props){
-    // プロパティが無い場合は表示（壊れ防止）
-    if(!props) return true;
-
-    if(document.getElementById('tsunami').checked && props["津波対応"] === false) return false;
-    if(document.getElementById('flood').checked && props["洪水対応"] === false) return false;
-    if(document.getElementById('landslide').checked && props["土砂対応"] === false) return false;
-
-    return true;
+  if(!props) return true;
+  if(document.getElementById('tsunami').checked && props["津波対応"] === false) return false;
+  if(document.getElementById('flood').checked && props["洪水対応"] === false) return false;
+  if(document.getElementById('landslide').checked && props["土砂対応"] === false) return false;
+  return true;
 }
 
 function drawShelters(){
-    sheltersLayer.clearLayers();
+  sheltersLayer.clearLayers();
 
-    shelters.forEach(f=>{
-        if(!isShelterAllowed(f.properties)) return;
+  shelters.forEach(f=>{
+    if(!isShelterAllowed(f.properties)) return;
 
-        const latlng = [f.geometry.coordinates[1], f.geometry.coordinates[0]];
-        const m = L.circleMarker(latlng,{
-            radius:6, color:'#000', weight:1,
-            fillColor:'#ff7800', fillOpacity:0.8
-        }).bindPopup(`
-            <strong>${f.properties["施設・場所名"]||"避難所"}</strong><br>
-            ${f.properties["住所"]||""}<br>
-            <button onclick="routeTo(${latlng[0]},${latlng[1]})">ここへ行く</button>
-        `);
-        sheltersLayer.addLayer(m);
-    });
+    const latlng = [f.geometry.coordinates[1], f.geometry.coordinates[0]];
+    const m = L.circleMarker(latlng,{
+      radius:6,
+      color:'#000',
+      weight:1,
+      fillColor:'#ff7800',
+      fillOpacity:0.85
+    }).bindPopup(`
+      <strong>${f.properties["施設・場所名"]||"避難所"}</strong><br>
+      ${f.properties["住所"]||""}<br>
+      <button onclick="routeTo(${latlng[0]},${latlng[1]})">ここへ行く</button>
+    `);
+    sheltersLayer.addLayer(m);
+  });
 }
 
 /* =====================
-   半径10m表示
+   半径10m
 ===================== */
 function show10mRange(){
-    if(!userLatLng) return;
-
-    if(rangeCircle) map.removeLayer(rangeCircle);
-    rangeCircle = L.circle(userLatLng,{
-        radius:10,
-        color:'#3498db',
-        fillOpacity:0.1
-    }).addTo(map);
+  if(!userLatLng) return;
+  if(rangeCircle) map.removeLayer(rangeCircle);
+  rangeCircle = L.circle(userLatLng,{
+    radius:10,
+    color:'#1e88e5',
+    fillOpacity:0.12
+  }).addTo(map);
 }
 
 /* =====================
-   ルート案内
+   ルート
 ===================== */
 let routingControl = null;
 
 function routeTo(lat,lng){
-    if(!userLatLng) return alert("現在地未取得");
+  if(!userLatLng) return alert("現在地未取得");
+  if(routingControl) map.removeControl(routingControl);
 
-    if(routingControl) map.removeControl(routingControl);
-
-    routingControl = L.Routing.control({
-        waypoints:[
-            L.latLng(userLatLng.lat,userLatLng.lng),
-            L.latLng(lat,lng)
-        ],
-        createMarker:()=>null,
-        addWaypoints:false,
-        draggableWaypoints:false,
-        show:false
-    }).addTo(map);
+  routingControl = L.Routing.control({
+    waypoints:[
+      L.latLng(userLatLng.lat,userLatLng.lng),
+      L.latLng(lat,lng)
+    ],
+    createMarker:()=>null,
+    addWaypoints:false,
+    draggableWaypoints:false,
+    show:false
+  }).addTo(map);
 }
 
 /* =====================
-   最寄り避難所 + 10m判定
+   最寄り避難所
 ===================== */
 function findNearestShelter(){
-    if(!userLatLng) return;
+  if(!userLatLng) return;
 
-    show10mRange();
-    drawShelters();
+  show10mRange();
+  drawShelters();
 
-    let nearest = null;
-    let min = Infinity;
+  let nearest = null;
+  let min = Infinity;
 
-    sheltersLayer.eachLayer(l=>{
-        const d = userLatLng.distanceTo(l.getLatLng());
-        if(d < min){
-            min = d;
-            nearest = l.getLatLng();
-        }
-        // 10m以内は強調
-        if(d <= 10){
-            l.setStyle({fillColor:'#e74c3c'});
-        }
-    });
-
-    if(nearest){
-        routeTo(nearest.lat, nearest.lng);
-    } else {
-        alert("近くに避難所がありません");
+  sheltersLayer.eachLayer(l=>{
+    const d = userLatLng.distanceTo(l.getLatLng());
+    if(d < min){
+      min = d;
+      nearest = l.getLatLng();
     }
+    if(d <= 10){
+      l.setStyle({fillColor:'#e53935'});
+    }
+  });
+
+  if(nearest){
+    routeTo(nearest.lat, nearest.lng);
+  } else {
+    alert("近くに避難所がありません");
+  }
 }
 </script>
 </body>
