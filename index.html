@@ -115,7 +115,7 @@
         .then(data => {
             sheltersLayer = L.geoJSON(data, {
                 onEachFeature: function (feature, layer) {
-                    layer.bindPopup(`<strong>${feature.properties["施設・場所名"]['住所']['受入対象者']['備考'] }</strong><br>${feature.properties["住所"]}<br><button onclick="startRouting(${feature.geometry.coordinates[1]}, ${feature.geometry.coordinates[0]})">ここへのルートを表示</button>`);
+                    layer.bindPopup(`<strong>${feature.properties["施設・場所名"]}</strong><br>${feature.properties["住所"]}<br><button onclick="startRouting(${feature.geometry.coordinates[1]}, ${feature.geometry.coordinates[0]})">ここへのルートを表示</button>`);
                 },
                 pointToLayer: function (feature, latlng) {
                     return L.circleMarker(latlng, { radius: 6, fillColor: "#ff7800", color: "#000", weight: 1, opacity: 1, fillOpacity: 0.8 });
