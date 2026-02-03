@@ -276,7 +276,8 @@ function drawShelters(){
     const lat=f.geometry.coordinates[1];
     const lng=f.geometry.coordinates[0];
     L.circleMarker([lat,lng],{
-      radius:8,color:'#333',fillColor:'#ff9800',fillOpacity:0.9
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/819/819865.png',
+            iconSize: [30, 30], iconAnchor: [15, 30]
     })
     .bindPopup(`
       <b>${f.properties["施設・場所名"]||"避難所"}</b><br>
