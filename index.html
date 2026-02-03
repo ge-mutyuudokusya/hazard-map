@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -40,9 +39,7 @@ html, body {
 }
 
 /* ===== 折りたたみ ===== */
-details {
-  margin-top:6px;
-}
+details { margin-top:6px; }
 summary {
   list-style:none;
   cursor:pointer;
@@ -54,9 +51,7 @@ summary {
 }
 summary::-webkit-details-marker { display:none; }
 
-.hazard-box {
-  margin-top:8px;
-}
+.hazard-box { margin-top:8px; }
 
 /* ===== トグル ===== */
 .toggle {
@@ -112,24 +107,18 @@ button:active { opacity:0.85; }
   border-radius:8px;
 }
 
-
-
-
-/* ===== 流れる文字 ===== */
+/* ===== 緊急速報 ===== */
 .flow-text {
-  display: inline-block;
-  white-space: nowrap;
-  padding-left: 100%;
-  animation: flow-left 30s linear infinite;
-font-size:1.9rem;
+  display:inline-block;
+  white-space:nowrap;
+  padding-left:100%;
+  animation:flow-left 30s linear infinite;
+  font-size:1.9rem;
 }
-
 @keyframes flow-left {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-100%); }
+  0% { transform:translateX(0); }
+  100% { transform:translateX(-100%); }
 }
-
-
 .emergency-bar{
   display:flex;
   align-items:center;
@@ -138,60 +127,45 @@ font-size:1.9rem;
   overflow:hidden;
   height:40px;
   font-weight:700;
-  font-family:"Noto Sans JP", sans-serif;
 }
-
 .emergency-label{
   background:#7f1d1d;
   padding:0 16px;
   white-space:nowrap;
   font-size:0.9rem;
 }
-
 .emergency-marquee{
   flex:1;
   overflow:hidden;
-  position:relative;
 }
-
 </style>
-
-
-
-
-<div class="emergency-bar">
-  <div class="emergency-label">緊急速報</div>
-
-  <div class="emergency-marquee">
-      
-      <div style="overflow: hidden; width: 100%;">
-            <span class="flow-text">日本海側で直下型地震を観測しました。落ち着いて身の安全を確保してください。震度はおおむね5強です。日本海側で津波注意報が発令されています。最新の情報に注意してください。
-            </span>
-        </div>
-
-       <!-- <marquee direction="left" scrollamount="5">
-           右から左へ流れる文字です。
-     </marquee> -->
-  </div>
-</div>
-
-
-
-
 </head>
 
 <body>
+
+<div class="emergency-bar">
+  <div class="emergency-label">緊急速報</div>
+  <div class="emergency-marquee">
+    <span class="flow-text">
+      日本海側で直下型地震を観測しました。落ち着いて身の安全を確保してください。
+    </span>
+  </div>
+</div>
+
 <div id="map"></div>
 
 <div id="panel">
   <details>
-     <summary>ハザード表示</summary>
-  <div class="panel-header">防災操作</div>
+    <summary>ハザード表示</summary>
+    <div class="panel-header">防災操作</div>
 
-  <!-- 折りたたみ -->
-  
-   
     <div class="hazard-box">
+      <!-- ★追加：避難所トグル -->
+      <div class="toggle">
+        <span>避難所</span>
+        <input type="checkbox" id="shelter" checked>
+      </div>
+
       <div class="toggle">
         <span>洪水</span>
         <input type="checkbox" id="flood">
@@ -204,24 +178,16 @@ font-size:1.9rem;
         <span>津波</span>
         <input type="checkbox" id="tsunami">
       </div>
-
-      <div class="toggle">
-  <span>避難所</span>
-  <input type="checkbox" id="shelter" checked>
-</div>
-
     </div>
 
-  <button onclick="findNearestShelter()">最寄りの安全な避難所へ</button>
-    </details>
-
+    <button onclick="findNearestShelter()">最寄りの安全な避難所へ</button>
+  </details>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
 
 <script>
-
 /* ===== マップ ===== */
 const map = L.map('map',{
   center:[43.5,142.5],
@@ -235,15 +201,20 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
 
 /* ===== ハザード ===== */
 const hazardLayers = {
-  flood: L.tileLayer('https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png',{opacity:0.6}),
-  landslide: L.tileLayer('https://disaportaldata.gsi.go.jp/raster/05_dosekiryukeikaikuiki/{z}/{x}/{y}.png',{opacity:0.6}),
-  tsunami: L.tileLayer('https://disaportaldata.gsi.go.jp/raster/04_tsunami_newlegend_data/{z}/{x}/{y}.png',{opacity:0.6})
+  flood: L.tileLayer(
+    'https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png',{opacity:0.6}),
+  landslide: L.tileLayer(
+    'https://disaportaldata.gsi.go.jp/raster/05_dosekiryukeikaikuiki/{z}/{x}/{y}.png',{opacity:0.6}),
+  tsunami: L.tileLayer(
+    'https://disaportaldata.gsi.go.jp/raster/04_tsunami_newlegend_data/{z}/{x}/{y}.png',{opacity:0.6})
 };
 
 document.querySelectorAll('#panel input').forEach(cb=>{
   cb.onchange=()=>{
-    cb.checked ? hazardLayers[cb.id].addTo(map)
-               : map.removeLayer(hazardLayers[cb.id]);
+    if(hazardLayers[cb.id]){
+      cb.checked ? hazardLayers[cb.id].addTo(map)
+                 : map.removeLayer(hazardLayers[cb.id]);
+    }
     drawShelters();
   };
 });
@@ -258,7 +229,9 @@ map.on('locationfound',e=>{
       radius:7,color:'#007aff',fillColor:'#007aff',fillOpacity:1
     }).addTo(map).bindPopup("現在地");
     map.setView(userLatLng,15);
-  } else userMarker.setLatLng(userLatLng);
+  } else {
+    userMarker.setLatLng(userLatLng);
+  }
 });
 
 /* ===== 避難所 ===== */
@@ -277,26 +250,25 @@ function isShelterAllowed(p){
 }
 
 function drawShelters(){
-
-function drawShelters(){
   sheltersLayer.clearLayers();
 
-  // ← 追加：避難所OFFなら何も描画しない
+  /* ★避難所OFFなら描画しない */
   if(!document.getElementById('shelter').checked) return;
 
   shelters.forEach(f=>{
-
-  sheltersLayer.clearLayers();
-  shelters.forEach(f=>{
     if(!isShelterAllowed(f.properties)) return;
+
     const lat=f.geometry.coordinates[1];
     const lng=f.geometry.coordinates[0];
+
     L.circleMarker([lat,lng],{
-  
-      radius:10,color:'#ffffff',fillColor:'#ff3b3b',fillOpacity:0.9
+      radius:10,
+      color:'#ffffff',
+      fillColor:'#ff3b3b',
+      fillOpacity:0.9
     })
     .bindPopup(`
-      <b>${f.properties["施設・場所名"]||"避難所"}</b><br>
+      <b>${f.properties["施設・場所名"] || "避難所"}</b><br>
       <button class="route-btn" onclick="routeTo(${lat},${lng})">
         この避難所までルート表示
       </button>
@@ -325,11 +297,12 @@ function findNearestShelter(){
   let nearest,min=Infinity;
   sheltersLayer.eachLayer(l=>{
     const d=userLatLng.distanceTo(l.getLatLng());
-    if(d<min){min=d;nearest=l.getLatLng();}
+    if(d<min){ min=d; nearest=l.getLatLng(); }
   });
   if(nearest) routeTo(nearest.lat,nearest.lng);
   else alert("近くに避難所がありません");
 }
 </script>
+
 </body>
 </html>
