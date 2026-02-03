@@ -204,6 +204,12 @@ font-size:1.9rem;
         <span>津波</span>
         <input type="checkbox" id="tsunami">
       </div>
+
+      <div class="toggle">
+  <span>避難所</span>
+  <input type="checkbox" id="shelter" checked>
+</div>
+
     </div>
 
   <button onclick="findNearestShelter()">最寄りの安全な避難所へ</button>
@@ -271,6 +277,15 @@ function isShelterAllowed(p){
 }
 
 function drawShelters(){
+
+function drawShelters(){
+  sheltersLayer.clearLayers();
+
+  // ← 追加：避難所OFFなら何も描画しない
+  if(!document.getElementById('shelter').checked) return;
+
+  shelters.forEach(f=>{
+
   sheltersLayer.clearLayers();
   shelters.forEach(f=>{
     if(!isShelterAllowed(f.properties)) return;
