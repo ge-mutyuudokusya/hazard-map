@@ -215,6 +215,13 @@ font-size:1.9rem;
 <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
 
 <script>
+  const shelterIcon = L.icon({
+  iconUrl: 'build001.png',   // 画像パス
+  iconSize: [36, 36],       // アイコンサイズ
+  iconAnchor: [18, 36],     // ピンの先端位置
+  popupAnchor: [0, -32]     // ポップアップ位置
+});
+
 
 /* ===== マップ ===== */
 const map = L.map('map',{
@@ -276,16 +283,17 @@ function drawShelters(){
     if(!isShelterAllowed(f.properties)) return;
     const lat=f.geometry.coordinates[1];
     const lng=f.geometry.coordinates[0];
-    L.circleMarker([lat,lng],{
-      radius:6,color:'#333',fillColor:'#ff9800',fillOpacity:0.9
-    })
-    .bindPopup(`
-      <b>${f.properties["施設・場所名"]||"避難所"}</b><br>
-      <button class="route-btn" onclick="routeTo(${lat},${lng})">
-        この避難所までルート表示
-      </button>
-    `)
-    .addTo(sheltersLayer);
+    L.marker([lat, lng], {
+  icon: shelterIcon
+})
+.bindPopup(`
+  <b>${f.properties["施設・場所名"] || "避難所"}</b><br>
+  <button class="route-btn" onclick="routeTo(${lat},${lng})">
+    この避難所までルート表示
+  </button>
+`)
+.addTo(sheltersLayer);
+
   });
 }
 
