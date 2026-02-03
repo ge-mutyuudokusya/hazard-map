@@ -183,11 +183,13 @@ font-size:1.9rem;
 <div id="map"></div>
 
 <div id="panel">
+  <details>
+     <summary>ハザード表示</summary>
   <div class="panel-header">防災操作</div>
 
   <!-- 折りたたみ -->
-  <details>
-    <summary>ハザード表示</summary>
+  
+   
     <div class="hazard-box">
       <div class="toggle">
         <span>洪水</span>
@@ -202,9 +204,10 @@ font-size:1.9rem;
         <input type="checkbox" id="tsunami">
       </div>
     </div>
-  </details>
 
   <button onclick="findNearestShelter()">最寄りの安全な避難所へ</button>
+    </details>
+
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
