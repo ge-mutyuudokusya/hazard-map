@@ -110,19 +110,84 @@ button:active { opacity:0.85; }
   background:#3498db;
   border-radius:8px;
 }
+
+
+
+
+/* ===== 流れる文字 ===== */
+.flow-text {
+  display: inline-block;
+  white-space: nowrap;
+  padding-left: 100%;
+  animation: flow-left 30s linear infinite;
+font-size:1.9rem;
+}
+
+@keyframes flow-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+
+
+.emergency-bar{
+  display:flex;
+  align-items:center;
+  background:#b91c1c;
+  color:#fff;
+  overflow:hidden;
+  height:40px;
+  font-weight:700;
+  font-family:"Noto Sans JP", sans-serif;
+}
+
+.emergency-label{
+  background:#7f1d1d;
+  padding:0 16px;
+  white-space:nowrap;
+  font-size:0.9rem;
+}
+
+.emergency-marquee{
+  flex:1;
+  overflow:hidden;
+  position:relative;
+}
+
 </style>
+
+
+
+
+<div class="emergency-bar">
+  <div class="emergency-label">緊急速報</div>
+
+  <div class="emergency-marquee">
+      
+      <div style="overflow: hidden; width: 100%;">
+            <span class="flow-text">日本海側で直下型地震を観測しました。落ち着いて身の安全を確保してください。震度はおおむね5強です。日本海側で津波注意報が発令されています。最新の情報に注意してください。
+            </span>
+        </div>
+
+       <!-- <marquee direction="left" scrollamount="5">
+           右から左へ流れる文字です。
+     </marquee> -->
+  </div>
+</div>
+
+
+
+
 </head>
 
 <body>
 <div id="map"></div>
 
 <div id="panel">
-    <details>
-    <summary>ハザード表示</summary>
   <div class="panel-header">防災操作</div>
 
   <!-- 折りたたみ -->
-
+  <details>
+    <summary>ハザード表示</summary>
     <div class="hazard-box">
       <div class="toggle">
         <span>洪水</span>
@@ -137,10 +202,9 @@ button:active { opacity:0.85; }
         <input type="checkbox" id="tsunami">
       </div>
     </div>
-  
+  </details>
 
   <button onclick="findNearestShelter()">最寄りの安全な避難所へ</button>
-</details>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -208,7 +272,7 @@ function drawShelters(){
     const lat=f.geometry.coordinates[1];
     const lng=f.geometry.coordinates[0];
     L.circleMarker([lat,lng],{
-      radius:9,color:'#333',fillColor:'#ff9800',fillOpacity:0.9
+      radius:6,color:'#333',fillColor:'#ff9800',fillOpacity:0.9
     })
     .bindPopup(`
       <b>${f.properties["施設・場所名"]||"避難所"}</b><br>
