@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>防災ハザードマップ 起動中</title>
+
+  <style>
+    /* ===== 全体 ===== */
+    body {
+      margin: 0;
+      height: 100vh;
+      background: radial-gradient(circle at center, #0b2a45, #020812);
+      overflow: hidden;
+      font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      color: white;
+    }
+
+    /* ===== ロード画面 ===== */
+    .loading-screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ===== ロゴ ===== */
+    .logo {
+      width: 160px;
+      height: 160px;
+      opacity: 0;
+      animation:
+        logoFadeIn 1.2s ease forwards,
+        logoFloat 3s ease-in-out infinite,
+        logoGlow 2.5s ease-in-out infinite;
+    }
+
+    @keyframes logoFadeIn {
+      from {
+        transform: scale(0.6) rotate(-20deg);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+      }
+    }
+
+    @keyframes logoFloat {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-12px);
+      }
+    }
+
+    @keyframes logoGlow {
+      0%, 100% {
+        filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));
+      }
+      50% {
+        filter: drop-shadow(0 0 30px rgba(255,80,80,0.9));
+      }
+    }
+
+    /* ===== タイトル ===== */
+    .title {
+      margin-top: 20px;
+      font-size: 1.4rem;
+      letter-spacing: 0.2em;
+      animation: textFade 2s ease infinite;
+    }
+
+    @keyframes textFade {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    /* ===== プログレスバー ===== */
+    .progress-container {
+      width: 70%;
+      max-width: 400px;
+      height: 10px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 999px;
+      margin-top: 40px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(
+        90deg,
+        #ff3b3b,
+        #ff8a8a,
+        #ff3b3b
+      );
+      box-shadow: 0 0 15px rgba(255, 80, 80, 0.8);
+      animation: progressMove 3.5s ease forwards;
+    }
+
+    @keyframes progressMove {
+      from { width: 0%; }
+      to { width: 100%; }
+    }
+
+    /* ===== 下部テキスト ===== */
+    .status {
+      margin-top: 14px;
+      font-size: 0.9rem;
+      opacity: 0.7;
+      animation: blink 1.4s infinite;
+    }
+
+    @keyframes blink {
+      0%,100% { opacity: 0.7; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ===== フェードアウト ===== */
+    .fade-out {
+      animation: screenFadeOut 0.8s forwards;
+    }
+
+    @keyframes screenFadeOut {
+      to {
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="loading-screen" id="loading">
+    <!-- ▼ ロゴ画像 -->
+    <img src="logo.png" alt="ロゴ" class="logo" />
+
+    <div class="title">HAZARD MAP SYSTEM</div>
+
+    <div class="progress-container">
+      <div class="progress-bar"></div>
+    </div>
+
+    <div class="status">システムを起動しています…</div>
+  </div>
+
+  <script>
+    const hazardMapURL = "https://ge-mutyuudokusya.github.io/hazard-map/"; // ←遷移先URL
+
+    // ロード完了後に遷移
+    setTimeout(() => {
+      document.getElementById("loading").classList.add("fade-out");
+
+      setTimeout(() => {
+        window.location.href = hazardMapURL;
+      }, 800);
+
+    }, 3600);
+  </script>
+
+</body>
+</html>
