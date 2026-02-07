@@ -80,7 +80,7 @@
     @media (min-width: 768px) {
       .top { height: 360px; }
       .grid {
-        grid-template-columns: repeat(4, minmax(280px, 1fr));
+        grid-template-columns: repeat(4, minmax(265px, 1fr));
         max-width: 900px;
         margin: 0 auto;
       }
@@ -89,122 +89,6 @@
     @media (max-width: 767px) {
       .grid { grid-template-columns: repeat(2, 1fr); }
     }
-
-    .nav {
-  position: fixed;
-  top: 16px;
-  right: 20px;
-  display: flex;
-  gap: 12px;
-  z-index: 1000;
-}
-
-.nav a {
-  text-decoration: none;
-  font-size: 0.85rem;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.8);
-  color: #e5e7eb;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 4px 14px rgba(0,0,0,.3);
-  transition: background .2s ease, transform .2s ease;
-}
-
-.nav a:hover {
-  background: rgba(30, 41, 59, 0.95);
-  transform: translateY(-1px);
-}
-.menu {
-  position: fixed;
-  top: 16px;
-  right: 20px;
-  z-index: 1000;
-}
-
-/* 三本線ボタン */
-.menu-btn {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: rgba(15,23,42,.8);
-  border: none;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 5px;
-  padding: 0 11px;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 4px 14px rgba(0,0,0,.35);
-}
-
-.menu-btn span {
-  height: 2px;
-  background: #e5e7eb;
-  border-radius: 2px;
-}
-
-/* メニュー本体 */
-.menu-panel {
-  position: absolute;
-  top: 54px;
-  right: 0;
-  background: rgba(15,23,42,.95);
-  border-radius: 14px;
-  padding: 12px;
-  display: none;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 180px;
-  box-shadow: 0 12px 32px rgba(0,0,0,.45);
-}
-
-.menu-panel a {
-  text-decoration: none;
-  color: #e5e7eb;
-  font-size: .85rem;
-  padding: 8px 10px;
-  border-radius: 10px;
-  transition: background .2s ease;
-}
-
-.menu-panel a:hover {
-  background: rgba(255,255,255,.08);
-}
-
-/* 表示切替 */
-.menu.open .menu-panel {
-  display: flex;
-}
-.footer {
-  margin-top: 60px;
-  padding: 28px 12px;
-  text-align: center;
-  font-size: .75rem;
-  color: #9ca3af;
-  border-top: 1px solid rgba(255,255,255,.08);
-}
-
-.footer-links {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-
-.footer-links a {
-  color: #cbd5f5;
-  text-decoration: none;
-  font-size: .75rem;
-  opacity: .8;
-}
-
-.footer-links a:hover {
-  opacity: 1;
-  text-decoration: underline;
-}
 .as {
   display: block;
   justify-self: center;
@@ -245,7 +129,7 @@ button top{
 
     <!-- top button -->
  <div class="button top" data-url="https://ge-mutyuudokusya.github.io/hazard-map/aa" data-desc="ハザードマップを開きます">
-      <img src="aaaaaa.png" alt="top" />
+      <img src="aaa.png" alt="top" />
       <div class="label" style="font-size: 400%;">ハザードマップ</div>
       <div class="desc"></div>
     </div>
@@ -262,16 +146,17 @@ button top{
         <div class="label">避難ガイド</div>
         <div class="desc"></div>
       </div>
-      <div class="button" data-url="https://example.com/2" data-desc="ハザドン紹介するサイト">
-        <img src="aaaaa.png" />
-        <div class="label">ハザドン<br>オフィシャル<br>ホームページ</div>
-        <div class="desc"></div>
-      </div>
-      <div class="button" data-url="sind.html" data-desc="役に立つリンク集">
+        <div class="button" data-url="sind.html" data-desc="日本であった地震の場所をリアルタイムで反映">
         <img src="aa.png" />
         <div class="label">地震情報</div>
         <div class="desc"></div>
       </div>
+      <div class="button" data-url="https://example.com/2" data-desc="ハザドン紹介するサイト">
+        <img src="aaaaa.png" />
+        <div class="label">　ハザドン<br>オフィシャル<br>ホームページ</div>
+        <div class="desc"></div>
+      </div>
+    
       
    
 
