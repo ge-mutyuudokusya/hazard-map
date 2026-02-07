@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>地震情報・震度マップ</title>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<style>
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f4f4f4;
+}
+
+header {
+  background: #111;
+  color: #fff;
+  padding: 12px;
+  text-align: center;
+}
+
+#map {
+  height: 55vh;
+}
+
+#panel {
+  padding: 12px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.shindo {
+  font-size: 28px;
+  font-weight: bold;
+  padding: 10px;
+  text-align: center;
+  border-radius: 6px;
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+/* 震度別カラー */
+.s1 { background:#6bc5ff }
+.s2 { background:#3fa9f5 }
+.s3 { background:#ffd700; color:#000 }
+.s4 { background:#ff9800 }
+.s5 { background:#ff5722 }
+.s6 { background:#e53935 }
+.s7 { background:#b71c1c }
+
+@media (min-width: 768px) {
+  #map { height: 65vh; }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2>地震情報（リアルタイム）</h2>
+</header>
+
+<div id="map"></div>
+
+<div id="panel"></div>
+
+<!-- Leaflet -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+// 地図初期化
+const map = L.map('map').setView([36.5, 138.5], 5);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap'
+}).addTo(map);
+
+// 震度→クラス変換
+function shindoClass(scale) {
+  if (scale >= 70) return 's7';
+  if (scale >= 60) return 's6';
+  if (scale >= 50) return 's5';
+  if (scale >= 40) return 's4';
+  if (scale >= 30) return 's3';
+  if (scale >= 20) return 's2';
+  return 's1';
+}
+
+// 地震情報取得
+fetch('https://api.p2pquake.net/v2/history?codes=551&limit=1')
+  .then(res => res.json())
+  .then(data => {
+    const q = data[0].earthquake;
+    const h = q.hypocenter;
+
+    const lat = h.latitude;
+    const lon = h.longitude;
+
+    // マーカー
+    L.marker([lat, lon]).addTo(map)
+      .bindPopup(`
+        <strong>${h.name}</strong><br>
+        M${q.magnitude}<br>
+        深さ ${h.depth}km
+      `)
+      .openPopup();
+
+    map.setView([lat, lon], 6);
+
+    // 震度表示
+    const shindoText = q.maxScale === -1 ? '不明' : `震度 ${Math.floor(q.maxScale / 10)}`;
+
+    document.getElementById('panel').innerHTML = `
+      <div class="card">
+        <div class="shindo ${shindoClass(q.maxScale)}">
+          ${shindoText}
+        </div>
+        <strong>発生時刻：</strong>${q.time}<br>
+        <strong>震源地：</strong>${h.name}<br>
+        <strong>マグニチュード：</strong>M${q.magnitude}<br>
+        <strong>深さ：</strong>${h.depth} km<br>
+        <strong>津波：</strong>${q.domesticTsunami}
+      </div>
+    `;
+  })
+  .catch(() => {
+    document.getElementById('panel').innerHTML =
+      '<div class="card">地震情報を取得できませんでした。</div>';
+  });
+</script>
+
+</body>
+</html>

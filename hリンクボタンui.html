@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>リンクボタンUI</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      display: flex;
+      justify-content: center;
+      padding: 24px;
+    }
+    .container {
+      width: 100%;
+      max-width: 1100px;
+      display: grid;
+      gap: 44px;
+    }
+    .title img {
+      width: 100%;
+      height: auto;
+      border-radius: 20px;
+      
+    }
+    .button {
+      position: relative;
+      border-radius: 18px;
+      overflow: hidden;
+      cursor: pointer;
+      background: #111827;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 40px rgba(0,0,0,.45);
+    }
+    .button img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: .85;
+    }
+    .label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(to top, rgba(0,0,0,.65), rgba(0,0,0,.1));
+      font-size: 1.1rem;
+      letter-spacing: .05em;
+      font-weight: bold;
+     color: #c9e5ff;
+    }
+    .desc {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      background: rgba(15,23,42,.9);
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: .85rem;
+      display: none;
+    }
+    .top {
+      height: 240px;
+    }
+    .grid {
+      display: grid;
+      gap: 10px;
+      justify-content: center;
+    }
+    @media (min-width: 768px) {
+      .top { height: 360px; }
+      .grid {
+        grid-template-columns: repeat(4, minmax(280px, 1fr));
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      .label { font-size: 1.4rem; }
+    }
+    @media (max-width: 767px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .nav {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  display: flex;
+  gap: 12px;
+  z-index: 1000;
+}
+
+.nav a {
+  text-decoration: none;
+  font-size: 0.85rem;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.8);
+  color: #e5e7eb;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(0,0,0,.3);
+  transition: background .2s ease, transform .2s ease;
+}
+
+.nav a:hover {
+  background: rgba(30, 41, 59, 0.95);
+  transform: translateY(-1px);
+}
+.menu {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  z-index: 1000;
+}
+
+/* 三本線ボタン */
+.menu-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(15,23,42,.8);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 11px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(0,0,0,.35);
+}
+
+.menu-btn span {
+  height: 2px;
+  background: #e5e7eb;
+  border-radius: 2px;
+}
+
+/* メニュー本体 */
+.menu-panel {
+  position: absolute;
+  top: 54px;
+  right: 0;
+  background: rgba(15,23,42,.95);
+  border-radius: 14px;
+  padding: 12px;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 180px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.45);
+}
+
+.menu-panel a {
+  text-decoration: none;
+  color: #e5e7eb;
+  font-size: .85rem;
+  padding: 8px 10px;
+  border-radius: 10px;
+  transition: background .2s ease;
+}
+
+.menu-panel a:hover {
+  background: rgba(255,255,255,.08);
+}
+
+/* 表示切替 */
+.menu.open .menu-panel {
+  display: flex;
+}
+.footer {
+  margin-top: 60px;
+  padding: 28px 12px;
+  text-align: center;
+  font-size: .75rem;
+  color: #9ca3af;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.footer-links a {
+  color: #cbd5f5;
+  text-decoration: none;
+  font-size: .75rem;
+  opacity: .8;
+}
+
+.footer-links a:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+  </style>
+</head>
+<body>
+  <!-- <div class="menu">
+  <button class="menu-btn" aria-label="menu">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+
+  <div class="menu-panel">
+    <a href="#top">トップ</a>
+    <a href="#list">一覧</a>
+    <a href="#about">このサイトについて</a>
+  </div>
+</div> -->
+
+
+  <div class="container">
+
+    <!-- title image -->
+    <div class="title">
+      <img src="fa.png" alt="title" />
+    </div>
+
+    <!-- top button -->
+ <div class="button top" data-url="https://ge-mutyuudokusya.github.io/hazard-map/aa" data-desc="ハザードマップを開きます">
+      <img src="aaa.png" alt="top" />
+      <div class="label">ハザドン</div>
+      <div class="desc"></div>
+    </div>
+
+    <!-- bottom buttons -->
+    <div class="grid">
+      <div class="button" data-url="https://example.com/1" data-desc="避難するときにあるとよい持ち物のリスト">
+        <img src="a.png" />
+        <div class="label">避難時持ち物リスト</div>
+        <div class="desc"></div>
+      </div>
+      <div class="button" data-url="https://example.com/2" data-desc="災害が起きる前の準備や知っておくべき知識">
+        <img src="aaaaa.png" />
+        <div class="label">防災知識</div>
+        <div class="desc"></div>
+      </div>
+      <div class="button" data-url="sind.html" data-desc="地震が起きた際の情報">
+        <img src="aa.png" />
+        <div class="label">地震情報</div>
+        <div class="desc"></div>
+      </div>
+      
+      <div class="button" data-url="https://saigai-hinanjo-m0d8zyd.gamma.site/" data-desc="避難する際のガイド">
+        <img src="aaaa.png" />
+        <div class="label">避難ガイド</div>
+        <div class="desc"></div>
+      </div>
+
+    <!-- </div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="https://www.cas.go.jp/jp/seisaku/bousaichou_preparation/index.html">防災庁</a>
+    <a href="https://www.jma.go.jp/jma/index.html">気象庁</a>
+    <a href="https://www.bousai-hokkaido.jp/">自治体サイト</a>
+    <a href="https://example.com">緊急連絡先</a>
+  </div>
+  <p>© 2026 ハザドン</p>
+</footer> -->
+
+  </div>
+
+  <script>
+    document.querySelectorAll('.button').forEach(btn => {
+      let clickTimer = null;
+      const desc = btn.querySelector('.desc');
+      desc.textContent = btn.dataset.desc;
+
+      btn.addEventListener('click', () => {
+        if (clickTimer) return;
+        clickTimer = setTimeout(() => {
+          desc.style.display = desc.style.display === 'block' ? 'none' : 'block';
+          clickTimer = null;
+        }, 250);
+      });
+
+      btn.addEventListener('dblclick', () => {
+        clearTimeout(clickTimer);
+        clickTimer = null;
+        window.location.href = btn.dataset.url;
+      });
+    });
+      const menu = document.querySelector('.menu');
+  const btn = document.querySelector('.menu-btn');
+
+  btn.addEventListener('click', () => {
+    menu.classList.toggle('open');
+  });
+  </script>
+</body>
+</html>
