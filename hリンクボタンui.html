@@ -207,11 +207,16 @@
 }
 .as {
   display: block;
-  margin: -10px auto 0;
-  width: 30px;
+  justify-self: center;
+  margin-top: 40px;
+  width: 120px;
   height: auto;
-  text-align: center;
 } 
+button top{
+  text-align: center;
+  width: 85%;
+  height: auto;
+}
 
   </style>
 </head>
@@ -240,8 +245,8 @@
 
     <!-- top button -->
  <div class="button top" data-url="https://ge-mutyuudokusya.github.io/hazard-map/aa" data-desc="ハザードマップを開きます">
-      <img src="aaa.png" alt="top" />
-      <div class="label">ハザドン</div>
+      <img src="logo.png" alt="top" />
+      <div class="label" style="font-size: 400%;">ハザードマップ</div>
       <div class="desc"></div>
     </div>
 
@@ -259,12 +264,12 @@
       </div>
       <div class="button" data-url="https://example.com/2" data-desc="ハザドン紹介するサイト">
         <img src="aaaaa.png" />
-        <div class="label">「ハザドン」<br>オフィシャル<br>ホームページ</div>
+        <div class="label">ハザドン<br>オフィシャル<br>ホームページ</div>
         <div class="desc"></div>
       </div>
       <div class="button" data-url="sind.html" data-desc="役に立つリンク集">
         <img src="aa.png" />
-        <div class="label">お役立ちリンク集</div>
+        <div class="label">地震情報</div>
         <div class="desc"></div>
       </div>
       
@@ -280,9 +285,9 @@
   </div>
   <p>© 2026 ハザドン</p>
 </footer> -->
-
   </div>
-<!-- <img class="as" src="logo.png" alt="title" /> -->
+
+<!-- <img class="as"  css ="  text-align: center;"src="logo.png" alt="title" /> -->
   <script>
     document.querySelectorAll('.button').forEach(btn => {
       let clickTimer = null;
@@ -312,4 +317,3 @@
   </script>
 </body>
 </html>
-<br>
